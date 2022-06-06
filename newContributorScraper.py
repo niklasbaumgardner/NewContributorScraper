@@ -7,10 +7,8 @@ import os
 logged_into_phab = False
 
 def main():
-    # You can either change the URL manually or enter the url from the command line.
-    # url = input('Enter the Bugzilla URL: ')
-
-    url = "https://bugzilla.mozilla.org/buglist.cgi?title=Resolved%20bugs%20%28excluding%20employees%29&quicksearch=657263%2C836789%2C1380220%2C1498224%2C1557835%2C1649605%2C1674666%2C1702240%2C1719938%2C1725354%2C1725583%2C1726858%2C1731770%2C1737989%2C1737990%2C1740630%2C1740660%2C1741205%2C1741548%2C1741716%2C1743058&list_id=15920322"
+    # Use the most recent "Resolved Bugs" url from the meeting agenda
+    url = ""
 
     driver = webdriver.Firefox()
     driver.get(url)
