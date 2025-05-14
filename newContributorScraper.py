@@ -34,6 +34,7 @@ def main():
 
     driver.close()
 
+
 # Validate args using argparse
 def validate_args():
     # Default wait time of 20 seconds for Duo, if not specified as an arg
@@ -67,6 +68,7 @@ def url_type(url):
         print(f'argparse.ArgumentError: {e}')
         sys.exit(1)
 
+
 # For validating the timer arg
 def timer_type(seconds):
     try:
@@ -78,7 +80,6 @@ def timer_type(seconds):
             raise argparse.ArgumentError(None, f'Timer cannot be zero or negative seconds')
         
         return converted_to_int
-
 
     except argparse.ArgumentError as e:
         print(f'argparse.ArgumentError: {e}')
