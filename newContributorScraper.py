@@ -1,24 +1,29 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-import time
+import argparse
 import os
+import sys
+import time
+import urllib.parse
+
 
 logged_into_phab = False
 
 def main():
-    # Use the most recent "Resolved Bugs" url from the meeting agenda
-    url = ""
+    OUTPUT_FILE_NAME = 'New_Contributors.txt'
+
+    url, timer = validate_args()
 
     driver = webdriver.Firefox()
     driver.get(url)
 
-    login_bugzilla(driver)
+    login_bugzilla(driver, timer)
 
     driver.get(url)
     lst = go_through_bug_list(driver)
 
-    fp = open('New_Contributors.txt', 'w')
+    fp = open(OUTPUT_FILE_NAME, 'w')
     fp.write('New Contributors\n')
     fp.write('-' * 83 + '\n')
 
@@ -29,9 +34,58 @@ def main():
 
     driver.close()
 
+# Validate args using argparse
+def validate_args():
+    # Default wait time of 20 seconds for Duo, if not specified as an arg
+    DEFAULT_TIMER = 20
+
+    parser = argparse.ArgumentParser()
+    # url is a required argument
+    parser.add_argument('url', type=url_type, help='The URL of recently resolved bugs. Link should be from the latest bi-weekly meeting.')
+    # Optional arguments
+    parser.add_argument('--timer', type=timer_type, default=DEFAULT_TIMER, help='The number of seconds of wait for Duo notification. Default is 20.')
+    args = parser.parse_args()
+
+    return args.url, args.timer
 
 
-def login_bugzilla(driver):
+# For validating the url
+def url_type(url):
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+
+        if not bool(parsed_url.netloc) or not bool(parsed_url.scheme):
+            raise argparse.ArgumentError(None, f'Invalid URL found')
+        if parsed_url.netloc != 'bugzilla.mozilla.org':
+            raise argparse.ArgumentError(None, f'URL should be from bugzilla.mozilla.org')
+        if 'quicksearch' not in parsed_url.query:
+            raise argparse.ArgumentError(None, f'Missing list of bugs in url')
+
+        return url
+
+    except argparse.ArgumentError as e:
+        print(f'argparse.ArgumentError: {e}')
+        sys.exit(1)
+
+# For validating the timer arg
+def timer_type(seconds):
+    try:
+        converted_to_int = int(seconds)
+
+        if not isinstance(converted_to_int, int):
+            raise argparse.ArgumentError(None, f'Invalid timer found')
+        if converted_to_int < 1:
+            raise argparse.ArgumentError(None, f'Timer cannot be zero or negative seconds')
+        
+        return converted_to_int
+
+
+    except argparse.ArgumentError as e:
+        print(f'argparse.ArgumentError: {e}')
+        sys.exit(1)
+
+
+def login_bugzilla(driver, timer):
     driver.find_element(By.ID, 'login_link_top').click()
 
     login_username = driver.find_element(By.ID, 'Bugzilla_login_top')
@@ -44,18 +98,8 @@ def login_bugzilla(driver):
     login_button = driver.find_element(By.ID, 'log_in_top')
     login_button.click()
 
-    # Waits for the Duo iframe to load
-    time.sleep(5)
-
-    driver.switch_to.frame(driver.find_element(By.ID, 'duo_iframe'))
-
-    driver.find_element(By.CLASS_NAME, 'auth-button').click()
-
-    driver.switch_to.default_content()
-
-    # Waits for you to accept the Duo push notification. Might need to change the time
-    time.sleep(15)
-
+    # Waits for the Duo iframe to load and for you to accept the push notification.
+    time.sleep(timer)
 
 # Logging into Phabricator is easy here. Just clicks a few buttons the first time visiting.
 def login_to_phab(driver):
@@ -166,7 +210,7 @@ def check_if_first_patch(driver, title, bug_id):
         return 'No Attachment. Check manually\n'
 
     except Exception as e:
-        print(e)
+        print(f'Exception: {e}')
         return ''
 
 
